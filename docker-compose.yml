@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  # ContextFlow API Server
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: contextflow-api
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+      - DATABASE_URL=sqlite:///./contextflow.db
+    volumes:
+      - ./data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+    networks:
+      - contextflow-network
+
+  # Optional: PostgreSQL for production (uncomment to use)
+  # db:
+  #   image: postgres:15-alpine
+  #   container_name: contextflow-db
+  #   environment:
+  #     - POSTGRES_USER=contextflow
+  #     - POSTGRES_PASSWORD=contextflow_password
+  #     - POSTGRES_DB=contextflow
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U contextflow"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   restart: unless-stopped
+  #   networks:
+  #     - contextflow-network
+
+  # Optional: Redis for caching (uncomment to use)
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: contextflow-redis
+  #   command: redis-server --appendonly yes
+  #   volumes:
+  #     - redis_data:/data
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "ping"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   restart: unless-stopped
+  #   networks:
+  #     - contextflow-network
+
+networks:
+  contextflow-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
