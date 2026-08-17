@@ -11,7 +11,8 @@ import { MetricsPanel } from './components/MetricsPanel';
 import { AddAgentModal } from './components/AddAgentModal';
 import { ConsensusGraph } from './components/ConsensusGraph';
 import { ToastContainer } from './components/Toast';
-import { DemoAlert } from './components/DemoAlert';
+import { SuperbDemoAlert } from './components/SuperbDemoAlert';
+import { ParticleBackground } from './components/ParticleBackground';
 
 function App() {
   const {
@@ -36,7 +37,12 @@ function App() {
   } = useDashboardStore();
 
   const [isLoading, setIsLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
   const [demoStage, setDemoStage] = useState<'setup' | 'divergence' | 'detecting' | 'syncing' | 'resolved' | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Helper function for sleep
   const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -195,10 +201,15 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen animated-gradient">
+    <div className={`
+      min-h-screen animated-gradient
+      transition-opacity duration-500
+      ${mounted ? 'opacity-100' : 'opacity-0'}
+    `}>
       <ToastContainer />
       <AddAgentModal />
-      {demoStage && <DemoAlert stage={demoStage} />}
+      <ParticleBackground />
+      {demoStage && <SuperbDemoAlert stage={demoStage} />}
       
       {/* Header */}
       <header className="glass border-b border-gray-700/50 px-6 py-4">

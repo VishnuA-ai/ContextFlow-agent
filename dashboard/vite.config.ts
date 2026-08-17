@@ -6,7 +6,31 @@ export default defineConfig({
   server: {
     port: 3000,
     proxy: {
-      '/api': {
+      '/health': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/metrics': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/agents': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/journal': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/ssv': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/consensus': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/demo': {
         target: 'http://localhost:8000',
         changeOrigin: true,
       },

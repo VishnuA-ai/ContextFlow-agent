@@ -1,4 +1,5 @@
 import { Activity, Database, AlertTriangle, Wifi } from 'lucide-react';
+import { GlowingMetricCard } from './GlowingMetricCard';
 import type { Metrics } from '../types';
 
 interface MetricsPanelProps {
@@ -18,43 +19,40 @@ export function MetricsPanel({ metrics }: MetricsPanelProps) {
     {
       label: 'Agents Tracked',
       value: metrics.agents_tracked,
-      icon: Activity,
-      color: 'text-blue-400',
-      glow: 'glow-blue',
+      icon: <Activity size={24} />,
+      status: 'blue' as const,
     },
     {
       label: 'Journal Entries',
       value: metrics.journal_entries,
-      icon: Database,
-      color: 'text-green-400',
-      glow: 'glow-green',
+      icon: <Database size={24} />,
+      status: 'green' as const,
     },
     {
       label: 'Critical Events',
       value: metrics.critical_events,
-      icon: AlertTriangle,
-      color: 'text-red-400',
-      glow: 'glow-red',
+      icon: <AlertTriangle size={24} />,
+      status: 'red' as const,
     },
     {
       label: 'Active Connections',
       value: metrics.active_connections,
-      icon: Wifi,
-      color: 'text-purple-400',
-      glow: 'glow-purple',
+      icon: <Wifi size={24} />,
+      status: 'blue' as const,
     },
   ];
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
       {metricCards.map((card) => (
-        <div key={card.label} className={`glass p-4 rounded-lg border border-gray-700/50 ${card.glow} animate-fade-in`}>
-          <div className="flex items-center gap-2 mb-2">
-            <card.icon size={18} className={card.color} />
-            <span className="text-xs text-gray-400">{card.label}</span>
-          </div>
-          <div className="text-2xl font-bold text-white">{card.value}</div>
-        </div>
+        <GlowingMetricCard
+          key={card.label}
+          title={card.label}
+          value={card.value}
+          icon={card.icon}
+          status={card.status}
+          animated={true}
+        />
       ))}
       <div className="col-span-2 md:col-span-4 glass p-4 rounded-lg border border-gray-700/50 glow-green animate-fade-in">
         <div className="flex items-center justify-between">

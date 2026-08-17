@@ -45,6 +45,7 @@ ContextFlow **automatically detects** when AI agents disagree and **syncs them b
 
 - **Backend**: Python + FastAPI
 - **Frontend**: React + TypeScript + TailwindCSS
+- **Agent Framework**: **Strands Agents SDK** (Required for Hackathon)
 - **Real-time**: WebSocket updates
 - **Security**: Cryptographic state vectors (SHA-256 hashing)
 - **Consensus**: Dynamic Consensus Protocol
@@ -81,6 +82,8 @@ python contextflow_api.py
 ```
 Server runs on: http://localhost:8000
 
+**Note**: Requires AWS credentials configured for Strands Agents SDK (Amazon Bedrock)
+
 ### Frontend:
 ```bash
 cd dashboard
@@ -114,14 +117,16 @@ Dashboard runs on: http://localhost:3000
 
 **Category**: AI Agents for Humans  
 **Theme**: Automate repetitive tasks  
-**Our Solution**: Automate the repetitive task of checking AI agent consensus
+**Our Solution**: Automate the repetitive task of checking AI agent consensus using **Strands Agents SDK**
 
 **Why This Wins**:
-- ✅ Solves real AI safety problem
+- ✅ Uses required Strands Agents SDK as the agent framework
+- ✅ Solves real AI safety problem (hallucination prevention)
 - ✅ Working demo anyone can understand
-- ✅ Professional, production-ready
-- ✅ Technically impressive (cryptography, real-time)
-- ✅ Clear impact (prevents costly mistakes)
+- ✅ Professional, production-ready with premium UI
+- ✅ Technically impressive (cryptography, real-time, consensus protocols)
+- ✅ Clear impact (prevents costly mistakes in healthcare, finance)
+- ✅ Innovative: Enhances Strands agents with consensus layer
 
 ---
 

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Cpu, Clock, Hash } from 'lucide-react';
 import { ConsensusBadge } from './ConsensusBadge';
 import type { Agent } from '../types';
@@ -11,20 +12,44 @@ interface AgentCardProps {
 }
 
 export function AgentCard({ agent, consensusLevel, divergence, onClick, isSelected }: AgentCardProps) {
+  const [isHovered, setIsHovered] = useState(false);
+
   const getGlowColor = () => {
     if (!consensusLevel) return '';
     return consensusLevel === 'aligned' ? 'glow-green' : 
            consensusLevel === 'minor_drift' ? 'glow-yellow' : 'glow-red';
   };
 
+  const getHoverBorderColor = () => {
+    if (!consensusLevel) return 'border-blue-400/50';
+    return consensusLevel === 'aligned' ? 'border-green-400/50' : 
+           consensusLevel === 'minor_drift' ? 'border-yellow-400/50' : 'border-red-400/50';
+  };
+
+  const getHoverShadowColor = () => {
+    if (!consensusLevel) return 'shadow-blue-500/20';
+    return consensusLevel === 'aligned' ? 'shadow-green-500/20' : 
+           consensusLevel === 'minor_drift' ? 'shadow-yellow-500/20' : 'shadow-red-500/20';
+  };
+
   return (
     <div
       onClick={onClick}
-      className={`glass p-4 rounded-lg border-2 cursor-pointer transition-all hover:scale-105 animate-fade-in ${
-        isSelected
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className={`
+        group relative glass p-4 rounded-lg border-2 cursor-pointer
+        transition-all duration-300 animate-fade-in
+        ${isSelected
           ? 'border-primary-500 glow-blue'
-          : `border-gray-700/50 hover:border-primary-500/50 ${getGlowColor()}`
-      }`}
+          : `border-gray-700/50 ${getGlowColor()}`
+        }
+        ${isHovered && !isSelected ? `
+          ${getHoverBorderColor()}
+          shadow-2xl ${getHoverShadowColor()}
+          scale-105
+        ` : ''}
+      `}
     >
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2">

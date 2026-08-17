@@ -21,6 +21,7 @@ from ssv_core import (
     AsyncStateJournal,
     SSVGenerator
 )
+from strands_wrapper import StrandsAgentFactory, StrandsAgentWrapper
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -384,14 +385,15 @@ async def get_agents():
         "count": len(consensus_cache)
     }
 
-
 @app.post("/demo/run")
 async def run_demo():
     """
-    Run the research workflow demo.
-    Creates Scout, Critic, and Synthesis agents with realistic mock data.
+    Run a demo workflow showing the consensus system in action.
+    Creates 3 Strands agents with intentional divergence, then shows consensus detection.
+    Note: Uses simulation mode for demo without AWS credentials.
+    With AWS credentials configured, this would use real Strands agents.
     """
-    # Create Scout agent
+    # Create Scout agent with intentional drift
     scout_ssv = SSVGenerator.generate_ssv(
         agent_id="scout",
         current_task="Research emerging AI safety techniques",

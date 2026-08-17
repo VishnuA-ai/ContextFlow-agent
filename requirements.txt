@@ -6,6 +6,9 @@ fastapi==0.141.1
 uvicorn[standard]==0.52.1
 pydantic==2.10.4
 
+# Strands Agents SDK (Required for Hackathon)
+strands-agents>=0.1.0
+
 # Optional: LangGraph integration
 # langgraph==0.2.0
 # langchain==0.3.0
