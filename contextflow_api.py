@@ -21,6 +21,12 @@ from ssv_core import (
     AsyncStateJournal,
     SSVGenerator
 )
+from ssv_core.advanced_features import (
+    AdaptiveConsensusEngine,
+    PredictiveDivergenceDetector,
+    ContextFlowOptimizer,
+    ConsensusStrategy
+)
 from strands_wrapper import StrandsAgentFactory, StrandsAgentWrapper
 
 # Configure logging
