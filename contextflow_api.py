@@ -26,6 +26,7 @@ from ssv_core import (
     SSVGenerator,
 )
 from strands_wrapper import StrandsAgentFactory, StrandsAgentWrapper
+from user_agent import ResearchAssistant
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -68,6 +69,7 @@ consensus_cache: Dict[str, SemanticStateVector] = {}
 agent_wrappers: Dict[str, StrandsAgentWrapper] = {}
 journal = AsyncStateJournal()
 active_connections: List[WebSocket] = []
+research_assistant = ResearchAssistant()
 
 
 # ============================================================================
@@ -680,6 +682,94 @@ async def websocket_consensus(websocket: WebSocket, agent_id: str):
     finally:
         if websocket in active_connections:
             active_connections.remove(websocket)
+
+
+# ============================================================================
+# RESEARCH ASSISTANT — user-facing endpoints
+# ============================================================================
+
+class ResearchRunRequest(BaseModel):
+    topic: str
+    submitted_by: str = "user"
+
+
+@app.post("/research/run")
+async def run_research(request: ResearchRunRequest):
+    """
+    The user-facing endpoint. A real person submits a topic.
+    Three Strands Agents run autonomously in the background.
+    ContextFlow monitors for conflicts silently.
+    A verified, conflict-free report is returned.
+
+    This is the core 'does real work for real people' flow.
+    """
+    if not request.topic or len(request.topic.strip()) < 3:
+        raise HTTPException(status_code=400, detail="Topic must be at least 3 characters.")
+
+    report = await research_assistant.research(
+        topic=request.topic.strip(),
+        submitted_by=request.submitted_by,
+    )
+
+    return {
+        "request_id": report.request_id,
+        "topic": report.topic,
+        "status": report.status,
+        "executive_summary": report.executive_summary,
+        "key_findings": report.key_findings,
+        "agent_findings": [
+            {
+                "agent_id": f.agent_id,
+                "role": f.agent_role,
+                "summary": f.summary,
+                "key_facts": f.key_facts,
+                "confidence": f.confidence,
+                "source": f.source_note,
+            }
+            for f in report.agent_findings
+        ],
+        "contextflow_summary": {
+            "conflicts_detected": report.conflicts_detected,
+            "conflicts_resolved": report.conflicts_resolved,
+            "consensus_level": report.consensus_level,
+            "hallucination_prevented": report.hallucination_prevented,
+            "audit_trail_entries": report.audit_trail_entries,
+        },
+        "user_alert": report.user_alert,
+        "generated_at": report.generated_at,
+    }
+
+
+@app.get("/research/report/{request_id}")
+async def get_research_report(request_id: str):
+    """Retrieve a previously generated research report by ID."""
+    report = research_assistant.get_report(request_id)
+    if not report:
+        raise HTTPException(status_code=404, detail=f"Report {request_id} not found.")
+    return {
+        "request_id": report.request_id,
+        "topic": report.topic,
+        "status": report.status,
+        "executive_summary": report.executive_summary,
+        "key_findings": report.key_findings,
+        "conflicts_detected": report.conflicts_detected,
+        "conflicts_resolved": report.conflicts_resolved,
+        "hallucination_prevented": report.hallucination_prevented,
+        "generated_at": report.generated_at,
+    }
+
+
+@app.get("/research/audit/{request_id}")
+async def get_research_audit(request_id: str):
+    """Get the full audit trail for a research request — every agent action recorded."""
+    trail = research_assistant.get_audit_trail()
+    if not trail:
+        raise HTTPException(status_code=404, detail="No audit trail found.")
+    return {
+        "request_id": request_id,
+        "total_entries": len(trail),
+        "audit_trail": trail,
+    }
 
 
 # ============================================================================

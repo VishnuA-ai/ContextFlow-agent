@@ -134,8 +134,34 @@ export interface StoryResult {
   };
 }
 
-export interface MultiAgentConsensus {
-  system_health: string;
+export interface ResearchAgentFinding {
+  agent_id: string;
+  role: string;
+  summary: string;
+  key_facts: string[];
+  confidence: number;
+  source: string;
+}
+
+export interface ResearchReport {
+  request_id: string;
+  topic: string;
+  status: string;
+  executive_summary: string;
+  key_findings: string[];
+  agent_findings: ResearchAgentFinding[];
+  contextflow_summary: {
+    conflicts_detected: number;
+    conflicts_resolved: number;
+    consensus_level: string;
+    hallucination_prevented: boolean;
+    audit_trail_entries: number;
+  };
+  user_alert?: string;
+  generated_at: number;
+}
+
+export interface MultiAgentConsensus {  system_health: string;
   consensus_graph: Record<string, { level: string; divergence: number }>;
   pairwise_results: Array<{
     pair: string;

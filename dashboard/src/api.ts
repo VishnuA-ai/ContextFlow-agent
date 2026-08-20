@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { Metrics, JournalEntry, DemoResult, BeforeAfterResult, StoryResult } from './types';
+import type { Metrics, JournalEntry, DemoResult, BeforeAfterResult, StoryResult, ResearchReport } from './types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -79,6 +79,24 @@ export const apiClient = {
 
   async getStory(): Promise<StoryResult> {
     const response = await api.post('/demo/story');
+    return response.data;
+  },
+
+  async runResearch(topic: string, submittedBy: string = 'user'): Promise<ResearchReport> {
+    const response = await api.post('/research/run', {
+      topic,
+      submitted_by: submittedBy,
+    });
+    return response.data;
+  },
+
+  async getResearchReport(requestId: string) {
+    const response = await api.get(`/research/report/${requestId}`);
+    return response.data;
+  },
+
+  async getResearchAudit(requestId: string) {
+    const response = await api.get(`/research/audit/${requestId}`);
     return response.data;
   },
 };

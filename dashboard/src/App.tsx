@@ -12,6 +12,7 @@ import { ConsensusGraph } from './components/ConsensusGraph';
 import { ToastContainer } from './components/Toast';
 import { SuperbDemoAlert } from './components/SuperbDemoAlert';
 import { ParticleBackground } from './components/ParticleBackground';
+import { ResearchAssistant } from './components/ResearchAssistant';
 import type { BeforeAfterResult, MultiAgentConsensus } from './types';
 
 function App() {
@@ -253,6 +254,11 @@ function App() {
         {/* ── METRICS ── */}
         <section className="mb-8">
           <MetricsPanel metrics={metrics} />
+        </section>
+
+        {/* ── RESEARCH ASSISTANT ── */}
+        <section className="mb-8">
+          <ResearchAssistant />
         </section>
 
         {/* ── BEFORE / AFTER PANEL ── */}
