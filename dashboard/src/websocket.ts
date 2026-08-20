@@ -3,17 +3,17 @@ import { useDashboardStore } from './store';
 
 class WebSocketManager {
   private ws: WebSocket | null = null;
-  private reconnectTimer: NodeJS.Timeout | null = null;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 3000;
 
   connect(agentId: string) {
     const wsUrl = `ws://localhost:8000/ws/consensus/${agentId}`;
-    
+
     try {
       this.ws = new WebSocket(wsUrl);
-      
+
       this.ws.onopen = () => {
         console.log(`WebSocket connected for agent ${agentId}`);
         useDashboardStore.getState().setConnected(true);
@@ -30,17 +30,14 @@ class WebSocketManager {
         }
       };
 
-      this.ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
+      this.ws.onerror = () => {
         useDashboardStore.getState().setWsError('Connection error');
       };
 
       this.ws.onclose = () => {
-        console.log(`WebSocket disconnected for agent ${agentId}`);
         useDashboardStore.getState().setConnected(false);
         this.scheduleReconnect(agentId);
       };
-
     } catch (error) {
       console.error('Failed to create WebSocket connection:', error);
       useDashboardStore.getState().setWsError('Failed to connect');
@@ -48,14 +45,10 @@ class WebSocketManager {
   }
 
   private scheduleReconnect(agentId: string) {
-    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.log('Max reconnection attempts reached');
-      return;
-    }
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) return;
 
     this.reconnectTimer = setTimeout(() => {
       this.reconnectAttempts++;
-      console.log(`Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
       this.connect(agentId);
     }, this.reconnectDelay);
   }
@@ -65,12 +58,10 @@ class WebSocketManager {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
     }
-    
     if (this.ws) {
       this.ws.close();
       this.ws = null;
     }
-    
     useDashboardStore.getState().setConnected(false);
   }
 }

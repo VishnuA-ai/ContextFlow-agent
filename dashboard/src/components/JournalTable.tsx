@@ -1,4 +1,3 @@
-import { ScrollText } from 'lucide-react';
 import type { JournalEntry } from '../types';
 
 interface JournalTableProps {
@@ -26,8 +25,8 @@ export function JournalTable({ entries }: JournalTableProps) {
             </tr>
           ) : (
             entries.map((entry, index) => (
-              <tr 
-                key={entry.sequence} 
+              <tr
+                key={entry.sequence}
                 className="border-b border-gray-700/30 hover:bg-gray-700/20 animate-slide-in"
                 style={{ animationDelay: `${index * 50}ms` }}
               >

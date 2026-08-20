@@ -1,16 +1,13 @@
 import axios from 'axios';
-import type { Metrics, JournalEntry, DemoResult } from './types';
+import type { Metrics, JournalEntry, DemoResult, BeforeAfterResult, StoryResult } from './types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  headers: { 'Content-Type': 'application/json' },
 });
 
-// Add error handling interceptor
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -60,7 +57,12 @@ export const apiClient = {
     return response.data;
   },
 
-  async getAgents(): Promise<{ agents: string[]; count: number }> {
+  async checkMultiAgentConsensus(agentIds: string[]) {
+    const response = await api.post('/consensus/multi-agent', agentIds);
+    return response.data;
+  },
+
+  async getAgents(): Promise<{ agents: string[]; count: number; details: Record<string, AgentDetail> }> {
     const response = await api.get('/agents');
     return response.data;
   },
@@ -70,10 +72,24 @@ export const apiClient = {
     return response.data;
   },
 
-  async checkMultiAgentConsensus(agentIds: string[]) {
-    const response = await api.post('/consensus/multi-agent', agentIds);
+  async getBeforeAfter(): Promise<BeforeAfterResult> {
+    const response = await api.post('/demo/before-after');
+    return response.data;
+  },
+
+  async getStory(): Promise<StoryResult> {
+    const response = await api.post('/demo/story');
     return response.data;
   },
 };
+
+export interface AgentDetail {
+  id: string;
+  task: string;
+  state_hash: string;
+  confidence: number;
+  timestamp: number;
+  using_strands: boolean;
+}
 
 export default api;

@@ -4,6 +4,7 @@ export interface Agent {
   confidence: number;
   state_hash: string;
   timestamp: number;
+  using_strands?: boolean;
 }
 
 export interface ConsensusStatus {
@@ -50,23 +51,97 @@ export interface ModalState {
 
 export interface DemoResult {
   success: boolean;
+  strands_mode: string;
   message: string;
   agents_created: string[];
+  agent_summaries: Record<string, string>;
   consensus_results: {
-    scout_vs_critic: {
-      level: string;
-      divergence: number;
-      mismatches: string[];
-    };
-    scout_vs_synthesis: {
-      level: string;
-      divergence: number;
-      mismatches: string[];
-    };
-    critic_vs_synthesis: {
-      level: string;
-      divergence: number;
-      mismatches: string[];
-    };
+    scout_vs_critic: ConsensusDetail;
+    scout_vs_synthesis: ConsensusDetail;
+    critic_vs_synthesis: ConsensusDetail;
   };
+}
+
+export interface ConsensusDetail {
+  level: string;
+  divergence: number;
+  divergence_percent: string;
+  mismatches: string[];
+}
+
+export interface BeforeAfterResult {
+  title: string;
+  without_contextflow: {
+    description: string;
+    scout_says: { citations: number; source: string };
+    critic_says: { citations: number; source: string };
+    divergence_percent: string;
+    consensus_level: string;
+    outcome: string;
+    cost_of_failure: string;
+  };
+  with_contextflow: {
+    description: string;
+    detection: {
+      divergence_detected: boolean;
+      divergence_score: number;
+      divergence_percent: string;
+      consensus_level_before_sync: string;
+      mismatched_fields: string[];
+      action_taken: string;
+    };
+    resolution: {
+      strategy: string;
+      scout_citations: number;
+      critic_citations: number;
+      consensus_citations: number;
+      explanation: string;
+    };
+    post_sync_consensus: {
+      divergence_score: number;
+      consensus_level: string;
+    };
+    outcome: string;
+    prevention_rate: string;
+  };
+  summary: {
+    problem_solved: string;
+    how: string;
+    latency: string;
+    llm_calls_for_sync: number;
+    strands_agents_used: number;
+  };
+}
+
+export interface StoryStep {
+  step: number;
+  emoji: string;
+  title: string;
+  narrative: string;
+  data: Record<string, unknown>;
+}
+
+export interface StoryResult {
+  title: string;
+  subtitle: string;
+  strands_mode: string;
+  total_steps: number;
+  steps: StoryStep[];
+  final_verdict: {
+    problem: string;
+    solution: string;
+    result: string;
+  };
+}
+
+export interface MultiAgentConsensus {
+  system_health: string;
+  consensus_graph: Record<string, { level: string; divergence: number }>;
+  pairwise_results: Array<{
+    pair: string;
+    level: string;
+    divergence: number;
+    divergence_percent: string;
+  }>;
+  total_pairs_checked: number;
 }

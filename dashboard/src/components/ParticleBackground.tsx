@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 
 export const ParticleBackground = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -14,15 +14,9 @@ export const ParticleBackground = () => {
     canvas.height = window.innerHeight;
 
     const particles: Array<{
-      x: number;
-      y: number;
-      vx: number;
-      vy: number;
-      size: number;
-      opacity: number;
+      x: number; y: number; vx: number; vy: number; size: number; opacity: number;
     }> = [];
 
-    // Create particles
     for (let i = 0; i < 50; i++) {
       particles.push({
         x: Math.random() * canvas.width,
@@ -30,29 +24,29 @@ export const ParticleBackground = () => {
         vx: (Math.random() - 0.5) * 0.5,
         vy: (Math.random() - 0.5) * 0.5,
         size: Math.random() * 2 + 1,
-        opacity: Math.random() * 0.5 + 0.5
+        opacity: Math.random() * 0.5 + 0.2,
       });
     }
 
-    // Animation loop
+    let animId: number;
+
     const animate = () => {
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+      ctx.fillStyle = 'rgba(0,0,0,0.1)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      particles.forEach((p) => {
+      for (const p of particles) {
         p.x += p.vx;
         p.y += p.vy;
-
         if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
         if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
 
-        ctx.fillStyle = `rgba(0, 136, 255, ${p.opacity})`;
+        ctx.fillStyle = `rgba(56,189,248,${p.opacity})`;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
         ctx.fill();
-      });
+      }
 
-      requestAnimationFrame(animate);
+      animId = requestAnimationFrame(animate);
     };
 
     animate();
@@ -61,16 +55,19 @@ export const ParticleBackground = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
     };
-
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+
+    return () => {
+      cancelAnimationFrame(animId);
+      window.removeEventListener('resize', handleResize);
+    };
   }, []);
 
   return (
     <canvas
       ref={canvasRef}
       className="fixed inset-0 pointer-events-none"
-      style={{ opacity: 0.3 }}
+      style={{ opacity: 0.25 }}
     />
   );
 };

@@ -1,135 +1,213 @@
 import { useEffect, useRef } from 'react';
 import { useDashboardStore } from '../store';
+import type { MultiAgentConsensus } from '../types';
+
+interface ConsensusGraphProps {
+  multiConsensus: MultiAgentConsensus | null;
+}
 
 interface Node {
   id: string;
   x: number;
   y: number;
-  vx: number;
-  vy: number;
+  pulse: number;
 }
 
 interface Edge {
   from: string;
   to: string;
-  level: 'aligned' | 'minor_drift' | 'critical';
+  level: string;
   divergence: number;
 }
 
-export function ConsensusGraph() {
+const LEVEL_COLOR: Record<string, string> = {
+  aligned: '#22c55e',
+  minor_drift: '#eab308',
+  critical: '#ef4444',
+};
+
+export function ConsensusGraph({ multiConsensus }: ConsensusGraphProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { agents, consensusUpdates } = useDashboardStore();
+  const { agents } = useDashboardStore();
   const nodesRef = useRef<Node[]>([]);
-  const edgesRef = useRef<Edge[]>([]);
-  const animationRef = useRef<number>();
+  const animRef = useRef<number>();
+  const frameRef = useRef(0);
 
   useEffect(() => {
-    // Initialize nodes for each agent
-    const agentIds = Object.keys(agents);
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width;
-    canvas.height = rect.height;
+    canvas.width = rect.width || 600;
+    canvas.height = rect.height || 260;
 
-    // Initialize or update nodes
-    if (nodesRef.current.length !== agentIds.length) {
-      nodesRef.current = agentIds.map((id, index) => {
-        const angle = (index / agentIds.length) * 2 * Math.PI;
-        const radius = Math.min(canvas.width, canvas.height) * 0.3;
-        return {
-          id,
-          x: canvas.width / 2 + Math.cos(angle) * radius,
-          y: canvas.height / 2 + Math.sin(angle) * radius,
-          vx: 0,
-          vy: 0,
-        };
-      });
+    const agentIds = Object.keys(agents);
+    if (agentIds.length === 0) return;
+
+    // Place nodes in a circle
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+    const r = Math.min(cx, cy) * 0.6;
+
+    nodesRef.current = agentIds.map((id, i) => {
+      const angle = (i / agentIds.length) * 2 * Math.PI - Math.PI / 2;
+      return { id, x: cx + Math.cos(angle) * r, y: cy + Math.sin(angle) * r, pulse: Math.random() * Math.PI * 2 };
+    });
+
+    // Build edges from multiConsensus
+    const edges: Edge[] = [];
+    if (multiConsensus?.consensus_graph) {
+      for (const [key, val] of Object.entries(multiConsensus.consensus_graph)) {
+        const [from, to] = key.split('<->');
+        if (from && to) edges.push({ from, to, level: val.level, divergence: val.divergence });
+      }
+    } else {
+      // Fallback: connect all pairs with neutral state
+      for (let i = 0; i < agentIds.length; i++) {
+        for (let j = i + 1; j < agentIds.length; j++) {
+          edges.push({ from: agentIds[i], to: agentIds[j], level: 'aligned', divergence: 0 });
+        }
+      }
     }
 
-    // Create edges based on consensus updates
-    const latestUpdate = consensusUpdates[consensusUpdates.length - 1];
-    if (latestUpdate) {
-      edgesRef.current = latestUpdate.consensus_with_others.map((status) => ({
-        from: latestUpdate.agent,
-        to: status.agent,
-        level: status.level,
-        divergence: status.divergence,
-      }));
-    }
-
-    const animate = () => {
+    const draw = () => {
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
+      frameRef.current++;
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       // Draw edges
-      edgesRef.current.forEach((edge) => {
-        const fromNode = nodesRef.current.find((n) => n.id === edge.from);
-        const toNode = nodesRef.current.find((n) => n.id === edge.to);
-        if (!fromNode || !toNode) return;
+      for (const edge of edges) {
+        const fromNode = nodesRef.current.find(n => n.id === edge.from);
+        const toNode = nodesRef.current.find(n => n.id === edge.to);
+        if (!fromNode || !toNode) continue;
 
-        const color = edge.level === 'aligned' ? '#22c55e' : 
-                     edge.level === 'minor_drift' ? '#eab308' : '#ef4444';
+        const color = LEVEL_COLOR[edge.level] || '#38bdf8';
+        const alpha = edge.level === 'critical'
+          ? 0.5 + 0.3 * Math.sin(frameRef.current * 0.05)
+          : 0.55;
 
+        // Glow
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 12;
         ctx.beginPath();
         ctx.moveTo(fromNode.x, fromNode.y);
         ctx.lineTo(toNode.x, toNode.y);
         ctx.strokeStyle = color;
-        ctx.lineWidth = 2 + edge.divergence * 10;
-        ctx.globalAlpha = 0.6;
+        ctx.globalAlpha = alpha;
+        ctx.lineWidth = 2 + edge.divergence * 8;
         ctx.stroke();
+        ctx.shadowBlur = 0;
         ctx.globalAlpha = 1;
-      });
+
+        // Divergence label on edge midpoint
+        if (edge.divergence > 0) {
+          const mx = (fromNode.x + toNode.x) / 2;
+          const my = (fromNode.y + toNode.y) / 2;
+          ctx.font = '11px monospace';
+          ctx.fillStyle = color;
+          ctx.globalAlpha = 0.9;
+          ctx.textAlign = 'center';
+          ctx.fillText(`${(edge.divergence * 100).toFixed(1)}%`, mx, my - 6);
+          ctx.globalAlpha = 1;
+        }
+      }
 
       // Draw nodes
-      nodesRef.current.forEach((node) => {
-        // Glow effect
-        const gradient = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, 40);
-        gradient.addColorStop(0, 'rgba(56, 189, 248, 0.3)');
-        gradient.addColorStop(1, 'rgba(56, 189, 248, 0)');
-        ctx.fillStyle = gradient;
+      for (const node of nodesRef.current) {
+        node.pulse += 0.03;
+
+        // Outer glow ring
+        const glowR = 28 + 4 * Math.sin(node.pulse);
+        const grad = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, glowR);
+        grad.addColorStop(0, 'rgba(56,189,248,0.35)');
+        grad.addColorStop(1, 'rgba(56,189,248,0)');
         ctx.beginPath();
-        ctx.arc(node.x, node.y, 40, 0, 2 * Math.PI);
+        ctx.arc(node.x, node.y, glowR, 0, 2 * Math.PI);
+        ctx.fillStyle = grad;
         ctx.fill();
 
         // Node circle
         ctx.beginPath();
-        ctx.arc(node.x, node.y, 15, 0, 2 * Math.PI);
-        ctx.fillStyle = '#38bdf8';
+        ctx.arc(node.x, node.y, 16, 0, 2 * Math.PI);
+        ctx.fillStyle = '#0ea5e9';
+        ctx.shadowColor = '#38bdf8';
+        ctx.shadowBlur = 16;
         ctx.fill();
-        ctx.strokeStyle = '#0ea5e9';
+        ctx.shadowBlur = 0;
+
+        // Ring
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, 16, 0, 2 * Math.PI);
+        ctx.strokeStyle = '#7dd3fc';
         ctx.lineWidth = 2;
         ctx.stroke();
 
         // Label
-        ctx.fillStyle = '#f8fafc';
-        ctx.font = '12px Inter';
+        ctx.font = 'bold 12px Inter, sans-serif';
+        ctx.fillStyle = '#f1f5f9';
         ctx.textAlign = 'center';
-        ctx.fillText(node.id, node.x, node.y + 30);
-      });
+        ctx.shadowBlur = 0;
+        ctx.fillText(node.id, node.x, node.y + 34);
+      }
 
-      animationRef.current = requestAnimationFrame(animate);
+      animRef.current = requestAnimationFrame(draw);
     };
 
-    animate();
+    draw();
 
     return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
+      if (animRef.current) cancelAnimationFrame(animRef.current);
     };
-  }, [agents, consensusUpdates]);
+  }, [agents, multiConsensus]);
+
+  const agentCount = Object.keys(agents).length;
 
   return (
-    <div className="glass rounded-lg p-4 h-80">
-      <h3 className="text-lg font-semibold text-white mb-4">Consensus Network</h3>
-      <canvas
-        ref={canvasRef}
-        className="w-full h-full rounded-lg bg-dark-bgSecondary/50"
-      />
+    <div className="glass rounded-xl p-4 border border-gray-700/50">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-lg font-semibold text-white">Consensus Network</h3>
+        {multiConsensus && (
+          <div className={`px-3 py-1 rounded-full text-xs font-semibold glass border ${
+            multiConsensus.system_health === 'healthy'
+              ? 'border-green-500/50 text-green-400 bg-green-500/10'
+              : multiConsensus.system_health === 'critical'
+              ? 'border-red-500/50 text-red-400 bg-red-500/10'
+              : 'border-yellow-500/50 text-yellow-400 bg-yellow-500/10'
+          }`}>
+            System: {multiConsensus.system_health.toUpperCase()}
+          </div>
+        )}
+      </div>
+
+      {agentCount === 0 ? (
+        <div className="h-64 flex items-center justify-center text-gray-500 text-sm">
+          Run Demo to see the live consensus graph
+        </div>
+      ) : (
+        <canvas
+          ref={canvasRef}
+          className="w-full rounded-lg"
+          style={{ height: '280px', background: 'rgba(15,23,42,0.4)' }}
+        />
+      )}
+
+      {/* Edge legend */}
+      {agentCount > 0 && (
+        <div className="flex items-center gap-6 mt-3 px-2">
+          {[
+            { color: '#22c55e', label: 'Aligned' },
+            { color: '#eab308', label: 'Minor drift' },
+            { color: '#ef4444', label: 'Critical' },
+          ].map(({ color, label }) => (
+            <div key={label} className="flex items-center gap-2">
+              <div className="w-6 h-0.5 rounded" style={{ backgroundColor: color }} />
+              <span className="text-xs text-gray-400">{label}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
