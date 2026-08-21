@@ -57,7 +57,7 @@ async def test_strands_wrapper():
 
     assert scout_cit == 145, f"Scout citations should be 145, got {scout_cit}"
     assert critic_cit == 156, f"Critic citations should be 156, got {critic_cit}"
-    assert synth_cit == 150, f"Synthesis citations should be 150 (post-consensus), got {synth_cit}"
+    assert synth_cit == 156, f"Synthesis citations should be 156 (matches Critic — newer source wins), got {synth_cit}"
 
     strands_mode = "real_bedrock" if scout.is_using_real_strands() else "simulation"
     print(f"  [PASS] strands_wrapper — 3 agents, divergence confirmed (scout={scout_cit}, critic={critic_cit}, synthesis={synth_cit}) mode={strands_mode}")
