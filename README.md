@@ -1,59 +1,80 @@
-# 🧠 ContextFlow: Multi-Agent Consensus Engine
+# ContextFlow: Multi-Agent Consensus Engine
 
-> **Stop AI hallucinations by making multiple Strands agents always agree on the same information.**
+> Built for the **Agents for Humans Hackathon** — Amazon Web Services · Strands Agents SDK
 
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Strands Agents SDK](https://img.shields.io/badge/Strands_Agents-SDK-orange.svg)](https://strandsagents.com)
 [![Amazon Bedrock](https://img.shields.io/badge/Amazon-Bedrock-FF9900.svg)](https://aws.amazon.com/bedrock/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.141-009688.svg)](https://fastapi.tiangolo.com)
 [![React](https://img.shields.io/badge/React-18-61DAFB.svg)](https://reactjs.org)
+[![Track](https://img.shields.io/badge/Track-Professional_Agents-purple.svg)]()
 
 ---
 
-## 🎯 The Problem
+## What It Does
 
-When multiple AI agents work together, they develop **different understandings of the same facts**:
+ContextFlow is an AI research assistant that handles the repetitive, time-consuming work of literature research autonomously.
+
+A researcher types a topic. Three Strands Agents run silently in the background — Scout gathers papers, Critic evaluates them, Synthesis merges the findings. ContextFlow monitors them the whole time, catches any disagreements, resolves conflicts automatically, and delivers a clean verified report. The researcher only gets notified if a conflict cannot be resolved.
+
+This is the **Professional Agents track**: it makes researchers, data scientists, and academics dramatically better at a task they do every day.
+
+---
+
+## The Problem It Solves
+
+When multiple AI agents work independently on the same research task, they develop conflicting beliefs. Without a consensus layer, the wrong information gets published silently.
 
 | | Without ContextFlow | With ContextFlow |
 |---|---|---|
-| Scout Agent | "Paper has **145** citations" | "Paper has **150** citations ✅" |
-| Critic Agent | "Paper has **156** citations" | "Paper has **150** citations ✅" |
-| Result | ❌ Hallucination published | ✅ Consensus achieved |
-| Divergence | **9.5% — CRITICAL** | **0% — ALIGNED** |
-| Extra LLM calls | N/A | **0** |
-| Detection time | Never | **< 50ms** |
+| Scout Agent | "Paper has **145** citations" (Oct 2025 index) | "Paper has **156** citations ✅" |
+| Critic Agent | "Paper has **156** citations" (Oct 2026 index) | "Paper has **156** citations ✅" |
+| Result | Wrong number published silently | Divergence caught, correct value used |
+| Divergence detected | Never | In **< 50ms** |
+| Extra LLM calls needed | N/A | **0** |
+| User notified? | No | Only if conflict cannot be resolved |
 
-This is **context drift** — and it causes cascading hallucinations across entire agent pipelines. No existing framework detects or prevents it.
-
----
-
-## ✨ How ContextFlow Works
-
-```
-Strands Agent A  ──┐
-Strands Agent B  ──┼──▶  SSV Generator  ──▶  Dynamic Consensus Protocol  ──▶  Sync / Proceed
-Strands Agent C  ──┘     (SHA-256 hash)       (divergence scoring)              (audit trail)
-```
-
-1. **Each Strands Agent generates a Semantic State Vector (SSV)** — a SHA-256 cryptographic fingerprint of its current beliefs
-2. **Dynamic Consensus Protocol compares SSVs** — detects divergence in < 50ms with zero LLM calls
-3. **Auto-sync** — agents are updated to a consensus state using weighted average or majority vote
-4. **Async State Journal** — immutable audit trail of every state change for full accountability
+This is called **context drift** — agents developing different beliefs about the same fact. It causes cascading errors across entire multi-agent pipelines. ContextFlow is the first middleware layer that detects and resolves it automatically.
 
 ---
 
-## 🚀 Strands Agents SDK Integration
+## How It Works
 
-ContextFlow is built **on top of** the Strands Agents SDK. Every agent in the system is a real Strands Agent:
+```
+User types topic
+       ↓
+Scout Agent (Strands + Bedrock)    →  researches papers
+Critic Agent (Strands + Bedrock)   →  evaluates methodology
+       ↓
+ContextFlow Consensus Engine
+  - Generates SHA-256 state fingerprint for each agent
+  - Dynamic Consensus Protocol detects divergence in < 50ms
+  - If conflict: Evidence Verifier checks source recency + reliability
+  - If resolved: Synthesis Agent produces unified report
+  - If unresolved: User is alerted (only then)
+       ↓
+Verified Research Report delivered
+       ↓
+Immutable audit trail — every agent action recorded
+```
+
+---
+
+## Strands Agents SDK Integration
+
+Every agent in the system is a real Strands Agent running on Amazon Bedrock:
 
 ```python
 from strands import Agent
 from strands.models import BedrockModel
 
-# Real Strands Agent on Amazon Bedrock
 model = BedrockModel(model_id="us.anthropic.claude-3-5-sonnet-20241022-v2:0")
+
 scout_agent = Agent(
-    system_prompt="You are the Scout agent. Research and gather information...",
+    system_prompt=(
+        "You are the Scout agent. Research and gather information on AI safety techniques. "
+        "Return a JSON with: task_summary, observations, decisions, confidence."
+    ),
     model=model,
 )
 
@@ -62,156 +83,147 @@ response = scout_agent(research_prompt)
 ssv = SSVGenerator.generate_ssv(agent_id="scout", observations=response.observations, ...)
 ```
 
-**Three Strands Agents run in every demo:**
-- **Scout** — researches information using Bedrock Claude
-- **Critic** — evaluates methodology, finds inconsistencies
-- **Synthesis** — merges findings into consensus recommendations
+Three Strands Agents run in every research task:
+- **Scout** — searches papers, gathers citation data
+- **Critic** — evaluates methodology, finds inconsistencies, flags conflicts
+- **Synthesis** — merges verified findings into the final report
 
-Without AWS credentials, agents run in **simulation mode** with realistic outputs — the demo always works.
-
----
-
-## 🏗️ Architecture
-
-```
-┌────────────────────────────────────────────────────────────────┐
-│                     ContextFlow System                          │
-├────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐        │
-│  │ Strands Agent│  │ Strands Agent│  │ Strands Agent│        │
-│  │ Scout        │  │ Critic       │  │ Synthesis    │        │
-│  │ (Bedrock)    │  │ (Bedrock)    │  │ (Bedrock)    │        │
-│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘        │
-│         └─────────────────┼─────────────────┘                 │
-│                           │                                    │
-│              ┌────────────▼────────────┐                      │
-│              │  Semantic State Vector  │                      │
-│              │  (SHA-256 Fingerprint)  │                      │
-│              └────────────┬────────────┘                      │
-│                           │                                    │
-│              ┌────────────▼────────────┐                      │
-│              │ Dynamic Consensus       │                      │
-│              │ Protocol (DCP)          │                      │
-│              │ GREEN / YELLOW / RED    │                      │
-│              └────────────┬────────────┘                      │
-│                           │                                    │
-│    ┌──────────────────────┼──────────────────────┐            │
-│    │                      │                      │            │
-│  ┌─▼──────────┐  ┌────────▼───────┐  ┌──────────▼──┐        │
-│  │State Journal│  │  Sync Engine  │  │ Audit Trail  │        │
-│  │(Immutable) │  │(Auto-resolve) │  │ (Exportable) │        │
-│  └────────────┘  └───────────────┘  └─────────────┘        │
-├────────────────────────────────────────────────────────────────┤
-│              FastAPI + WebSocket (Real-time)                    │
-├────────────────────────────────────────────────────────────────┤
-│              React + TypeScript Dashboard                       │
-└────────────────────────────────────────────────────────────────┘
-```
+Without AWS credentials, agents run in simulation mode with realistic outputs — the demo always works end to end.
 
 ---
 
-## 📦 Installation & Quick Start
+## Architecture
 
-### Prerequisites
+```
+┌─────────────────────────────────────────────────────┐
+│                  ContextFlow System                  │
+├─────────────────────────────────────────────────────┤
+│                                                      │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐    │
+│  │   Scout    │  │   Critic   │  │ Synthesis  │    │
+│  │  (Strands) │  │  (Strands) │  │  (Strands) │    │
+│  │  (Bedrock) │  │  (Bedrock) │  │  (Bedrock) │    │
+│  └─────┬──────┘  └─────┬──────┘  └─────┬──────┘    │
+│        └───────────────┼───────────────┘            │
+│                        ↓                            │
+│         ┌──────────────────────────┐                │
+│         │  SHA-256 State Fingerprint│               │
+│         │  (SSV Generator)          │               │
+│         └──────────────┬───────────┘                │
+│                        ↓                            │
+│         ┌──────────────────────────┐                │
+│         │  Dynamic Consensus       │                │
+│         │  Protocol (DCP)          │                │
+│         │  GREEN / YELLOW / RED /  │                │
+│         │  UNRESOLVED              │                │
+│         └──────┬───────────┬───────┘                │
+│                ↓           ↓                        │
+│        ┌───────────┐  ┌──────────────┐             │
+│        │  Evidence │  │  Async State │             │
+│        │  Verifier │  │  Journal     │             │
+│        │ RESOLVED_A│  │ (Immutable)  │             │
+│        │ RESOLVED_B│  │ Audit Trail  │             │
+│        │ UNRESOLVED│  └──────────────┘             │
+│        └───────────┘                               │
+├─────────────────────────────────────────────────────┤
+│         FastAPI REST + WebSocket (Real-time)         │
+├─────────────────────────────────────────────────────┤
+│         React + TypeScript Dashboard                 │
+└─────────────────────────────────────────────────────┘
+```
+
+---
+
+## Quick Start
+
+### Requirements
 - Python 3.11+
 - Node.js 18+
 - AWS credentials (optional — simulation mode works without them)
 
-### Backend
+### Run the Backend
 ```bash
 cd contextflow-hackathon
 pip install -r requirements.txt
 python contextflow_api.py
 ```
-API runs at: **http://localhost:8000**
-Interactive docs: **http://localhost:8000/docs**
+API: http://localhost:8000  
+Docs: http://localhost:8000/docs
 
-### Frontend
+### Run the Frontend
 ```bash
 cd dashboard
 npm install
 npm run dev
 ```
-Dashboard runs at: **http://localhost:3000**
+Dashboard: http://localhost:3000
 
-### One-click demo (no setup needed)
+### Try It
+1. Open http://localhost:3000
+2. Type any research topic in the Research Assistant box
+3. Click Research — agents run in the background
+4. See the verified report with conflict resolution details
+
+Or click **Run Demo** to see the full consensus detection flow with before/after comparison.
+
+### Verify Everything Works
 ```bash
-# Start backend, then open dashboard and click "Run Demo"
-# Watches 3 Strands agents detect and resolve a 9.5% context drift in real time
+python _verify.py
+# Expected: ALL CHECKS PASSED ✅
 ```
 
 ---
 
-## 🎬 Key Endpoints (for judges)
+## All API Endpoints
 
-| Endpoint | Description |
-|---|---|
-| `POST /demo/run` | Run 3 Strands agents, detect divergence |
-| `POST /demo/before-after` | **Side-by-side comparison** — with vs without ContextFlow |
-| `POST /demo/story` | **5-step narrated story** — perfect for evaluating the full flow |
-| `GET /agentcore/status` | Amazon Bedrock AgentCore deployment status |
-| `GET /health` | System health + Strands availability |
-| `WS /ws/consensus/{id}` | Real-time consensus updates |
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/research/run` | **User-facing** — submit a topic, get a verified report |
+| POST | `/demo/run` | Run 3 Strands agents, detect divergence |
+| POST | `/demo/before-after` | Side-by-side comparison with vs without ContextFlow |
+| POST | `/demo/story` | 5-step narrated flow — best for judges |
+| GET | `/health` | System health + Strands availability |
+| GET | `/metrics` | Live metrics including conflict resolution rate |
+| GET | `/agents` | All tracked agents with state details |
+| POST | `/ssv/generate` | Generate SHA-256 state fingerprint for any agent |
+| POST | `/consensus/check` | Compare two agents — get divergence score |
+| POST | `/consensus/multi-agent` | Compare all agent pairs at once |
+| GET | `/journal/agent/{id}` | Full audit trail for one agent |
+| GET | `/journal/export` | Export full journal as JSON |
+| GET | `/agentcore/status` | Amazon Bedrock AgentCore deployment status |
+| WS | `/ws/consensus/{id}` | Real-time consensus updates every 3 seconds |
 
-**Try the story endpoint directly:**
 ```bash
+# Try the narrated story endpoint
 curl -X POST http://localhost:8000/demo/story | python -m json.tool
+
+# Try the research assistant
+curl -X POST http://localhost:8000/research/run \
+  -H "Content-Type: application/json" \
+  -d '{"topic": "AI safety techniques", "submitted_by": "researcher"}'
 ```
 
 ---
 
-## ☁️ Amazon Bedrock AgentCore Deployment
+## Amazon Bedrock AgentCore
 
-Deploy all 3 Strands agents to Amazon Bedrock AgentCore for production-grade managed execution:
+Deploy all 3 Strands agents to Amazon Bedrock AgentCore:
 
 ```bash
-# Deploy agents to AgentCore
 python agentcore_deploy.py --deploy --region us-east-1
-
-# Check deployment status
 python agentcore_deploy.py --status
-
-# Run a consensus invocation via AgentCore
 python agentcore_deploy.py --invoke --prompt "Research AI safety techniques"
 ```
 
-AgentCore provides:
-- ✅ Managed agent runtime — no infrastructure to manage
-- ✅ Built-in session persistence
-- ✅ AWS IAM security
-- ✅ CloudWatch observability
+AgentCore gives: managed runtime, session persistence, AWS IAM security, CloudWatch observability.
 
 ---
 
-## 📊 Judging Criteria Mapping
+## Technical Design
 
-| Criterion | What ContextFlow Delivers |
-|---|---|
-| **Technical Implementation** | Real Strands Agents on Bedrock, SHA-256 SSV, DCP algorithm, WebSocket, AgentCore-ready |
-| **Design** | Premium dark dashboard, animated consensus graph, before/after panel, toast notifications |
-| **Potential Impact** | Prevents hallucinations in healthcare ($X wrong diagnosis), finance (wrong trade), research (false citations) |
-| **Creativity & Originality** | First consensus protocol layer for multi-agent Strands systems — no framework does this |
-| **Presentation** | `/demo/story` endpoint + dashboard demo tell the complete narrative end-to-end |
+### SHA-256 State Fingerprint (SSV)
+Each agent's state is hashed with SHA-256 for tamper detection. The hash is used only for integrity checking — not for semantic comparison.
 
----
-
-## 🏆 Use Cases
-
-### Healthcare
-3 Strands agents analyse patient data → ContextFlow catches when Agent A says "glucose 180" and Agent B says "glucose 120" → consensus resolved to 150 → correct pre-diabetes diagnosis
-
-### Finance
-4 Strands trading agents give conflicting signals → ContextFlow detects critical divergence → blocks execution → prevents bad trade
-
-### Research (the demo)
-Scout finds 145 citations, Critic finds 156 → 9.5% divergence detected → consensus: 150 → correct literature review published
-
----
-
-## 🔬 Technical Deep Dive
-
-### Semantic State Vector (SSV)
 ```python
 @dataclass
 class SemanticStateVector:
@@ -220,82 +232,102 @@ class SemanticStateVector:
     intent_vector: Dict[str, float]   # what the agent is trying to accomplish
     belief_state: Dict[str, Any]      # current facts the agent believes
     decision_history: List[str]       # last 5 decisions made
-    confidence_score: float           # 0-1
-    state_hash: str                   # SHA-256 of normalised state
+    confidence_score: float           # 0-1 overall confidence
+    state_hash: str                   # SHA-256 integrity fingerprint only
+    field_evidence: Dict[str, Any]    # per-field source metadata
 ```
 
-### Dynamic Consensus Protocol
+### Dynamic Consensus Protocol (DCP)
+Detects divergence. Does NOT determine truth. Truth is handled by the Evidence Verifier.
+
 - Intent vector divergence: **40% weight**
 - Belief state divergence: **40% weight**
-- Temporal drift: **10% weight**
-- Decision history overlap: **10% weight**
-- **GREEN** (< 5%): Proceed
-- **YELLOW** (5–15%): Log and monitor
-- **RED** (> 15%): Block and sync
+- Temporal drift (>5 min gap): **10% weight**
+- Decision history mismatch: **10% weight**
+- GREEN (< 5%): proceed
+- YELLOW (5–15%): log and monitor
+- RED (> 15%): block, trigger Evidence Verifier
+- UNRESOLVED: block sync — insufficient evidence to choose
+
+### Evidence Verifier
+When DCP returns RED, the Evidence Verifier checks:
+1. Source recency — newer database wins
+2. Source type reliability — live API > database > cache > inferred
+3. Per-field confidence scores
+
+Returns: `RESOLVED_A`, `RESOLVED_B`, or `UNRESOLVED`
+
+### State Journal
+Every agent action is recorded immutably with: original claim, source, divergence detected, verifier result, resolution reason, sync result.
+
+Answers: *"Why did this agent change its answer?"*
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 contextflow-hackathon/
-├── ssv_core.py              # Core: SSV, DCP, AsyncStateJournal
+├── ssv_core.py              # Core: SSV, DCP, Evidence types, Journal
 ├── strands_wrapper.py       # Strands SDK integration (real + simulation)
-├── contextflow_api.py       # FastAPI server with all endpoints
-├── agentcore_deploy.py      # Amazon Bedrock AgentCore deployment
-├── dashboard/               # React + TypeScript frontend
-│   ├── src/
-│   │   ├── App.tsx          # Main app with before/after panel
-│   │   ├── components/
-│   │   │   ├── ConsensusGraph.tsx   # Live canvas network graph
-│   │   │   ├── AgentCard.tsx        # Agent status cards
-│   │   │   ├── MetricsPanel.tsx     # Live metrics
-│   │   │   └── SuperbDemoAlert.tsx  # 5-stage demo overlay
-│   │   └── api.ts           # API client
+├── contextflow_api.py       # FastAPI server — 22 endpoints
+├── user_agent.py            # ResearchAssistant — user-facing end-to-end flow
+├── agentcore_deploy.py      # Amazon Bedrock AgentCore deployment CLI
+├── _verify.py               # End-to-end verification (all checks pass)
+├── dashboard/
+│   └── src/
+│       ├── App.tsx                       # Main app
+│       ├── components/
+│       │   ├── ResearchAssistant.tsx     # User-facing research panel
+│       │   ├── ConsensusGraph.tsx        # Animated network graph
+│       │   ├── AgentCard.tsx             # Agent status cards
+│       │   ├── MetricsPanel.tsx          # Live metrics
+│       │   └── SuperbDemoAlert.tsx       # 5-stage demo overlay
+│       └── api.ts                        # API client
 ├── tests/                   # Test suite
-├── demo/                    # Demo workflow scripts
 ├── Dockerfile               # Production container
-├── docker-compose.yml       # Full stack deployment
+├── render.yaml              # Render deployment config
+├── docker-compose.yml       # Full stack local deployment
 ├── ARCHITECTURE.md          # Architecture diagram
-└── requirements.txt         # Pinned dependencies
+├── AUDIT_REPORT.md          # Full codebase audit
+├── BUILD_JOURNAL.md         # Every error hit and how it was fixed
+└── requirements.txt         # Pinned Python dependencies
 ```
 
 ---
 
-## 🧪 Running Tests
+## Running Tests
 
 ```bash
-cd contextflow-hackathon
 python -m pytest tests/ -v --cov=.
 ```
 
 ---
 
-## 🐳 Docker Deployment
+## Docker
 
 ```bash
 docker-compose up --build
 ```
 
-API: http://localhost:8000 | Dashboard: build and serve from `dashboard/dist`
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE)
 
 ---
 
-## 📄 License
+## Built For
 
-MIT License — see [LICENSE](LICENSE)
+**Agents for Humans Hackathon** — August–September 2026  
+Sponsored by Amazon Web Services · Powered by Strands Agents SDK  
+Track: **Professional Agents**
 
----
+**Who it is for:** AI researchers, data scientists, academics — anyone who runs multi-agent pipelines as part of their daily work.
 
-## 👥 Built For
+**The problem:** Multi-agent systems silently develop conflicting beliefs about the same facts. Wrong information propagates downstream before anyone notices.
 
-**Agents for Humans Hackathon** (August–September 2026)
-Sponsored by Amazon Web Services · Powered by Strands Agents SDK
+**The solution:** ContextFlow sits between agents, fingerprints every state change, detects conflicts in under 50ms without any extra LLM calls, verifies which agent has better evidence, and delivers a clean verified output to the user.
 
-**Problem**: Multi-agent AI systems suffer from context drift
-**Solution**: Cryptographic consensus engine with auto-sync
-**Result**: 100% hallucination prevention in controlled testing
-
----
-
-*Built to make AI systems more reliable and trustworthy — one consensus at a time.*
+**Why it matters:** The same problem exists in healthcare (conflicting patient data), finance (conflicting trading signals), and legal (conflicting contract interpretations). ContextFlow is the consensus layer that any multi-agent Strands system can plug into.
