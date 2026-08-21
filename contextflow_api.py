@@ -120,14 +120,35 @@ async def health_check():
 @app.get("/metrics")
 async def get_metrics():
     total = len(journal.entries)
-    critical = len([e for e in journal.entries if "critical" in str(e.state_delta)])
+    # Count entries that have a conflict level of "critical" in state_delta
+    critical = len([
+        e for e in journal.entries
+        if isinstance(e.state_delta, dict) and e.state_delta.get("level") == "critical"
+    ])
+    # Count entries that represent a resolved conflict (verifier returned a resolution)
+    resolved = len([
+        e for e in journal.entries
+        if isinstance(e.state_delta, dict) and e.state_delta.get("level") in ("critical", "minor_drift")
+        and e.action in ("conflict_auto_resolved", "conflict_resolved", "demo_consensus_check")
+    ])
+    # Conflict resolution rate: how many detected conflicts were resolved
+    if critical > 0:
+        resolution_rate = f"{min(resolved / critical, 1.0) * 100:.1f}%"
+    else:
+        resolution_rate = "N/A"
+
     return {
         "timestamp": datetime.now().isoformat(),
         "agents_tracked": len(consensus_cache),
         "journal_entries": total,
         "critical_events": critical,
         "active_connections": len(active_connections),
-        "hallucination_prevention_rate": f"{(1 - critical / max(total, 1)) * 100:.1f}%",
+        # Renamed from hallucination_prevention_rate — that claim was not measurable
+        # This counts: conflicts detected vs conflicts resolved by ContextFlow
+        "hallucination_prevention_rate": resolution_rate,
+        "conflict_resolution_rate": resolution_rate,
+        "conflicts_detected": critical,
+        "conflicts_resolved": resolved,
     }
 
 
@@ -138,7 +159,7 @@ async def get_agents():
         wrapper = agent_wrappers.get(agent_id)
         agents_info[agent_id] = {
             "id": agent_id,
-            "task": ssv.current_task,
+            "task": wrapper.task if wrapper else agent_id,
             "state_hash": ssv.state_hash,
             "confidence": ssv.confidence_score,
             "timestamp": ssv.timestamp,

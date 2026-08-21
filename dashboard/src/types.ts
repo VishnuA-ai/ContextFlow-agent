@@ -161,7 +161,8 @@ export interface ResearchReport {
   generated_at: number;
 }
 
-export interface MultiAgentConsensus {  system_health: string;
+export interface MultiAgentConsensus {
+  system_health: string;
   consensus_graph: Record<string, { level: string; divergence: number }>;
   pairwise_results: Array<{
     pair: string;
