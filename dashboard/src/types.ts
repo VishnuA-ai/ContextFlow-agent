@@ -43,7 +43,6 @@ export interface Toast {
   message: string;
   timestamp: number;
 }
-
 export interface ModalState {
   isOpen: boolean;
   type: 'addAgent' | null;

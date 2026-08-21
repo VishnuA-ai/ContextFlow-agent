@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Brain, RefreshCw, Play, Square, Zap, Plus, GitCompare } from 'lucide-react';
+import { Brain, Play, Square, Zap, Plus, GitCompare } from 'lucide-react';
 import { useDashboardStore } from './store';
 import { apiClient } from './api';
 import { wsManager } from './websocket';
@@ -82,20 +82,37 @@ function App() {
     }
   }, []);
 
-  // ─── Initial load ───
+  // ─── Initial load with retry for Render cold start ───
   useEffect(() => {
     const init = async () => {
-      try {
-        const [, metricsData] = await Promise.all([
-          apiClient.getHealth(),
-          apiClient.getMetrics(),
-        ]);
-        setMetrics(metricsData);
-        await loadAgents();
-      } catch {
-        addToast({ type: 'error', message: 'Cannot reach API. Make sure the backend is running on :8000' });
-      } finally {
-        setIsLoading(false);
+      // Retry up to 5 times — Render free tier takes 30-50s to wake up
+      let attempts = 0;
+      const maxAttempts = 5;
+
+      while (attempts < maxAttempts) {
+        try {
+          const [, metricsData] = await Promise.all([
+            apiClient.getHealth(),
+            apiClient.getMetrics(),
+          ]);
+          setMetrics(metricsData);
+          await loadAgents();
+          setIsLoading(false);
+          return; // success — stop retrying
+        } catch {
+          attempts++;
+          if (attempts < maxAttempts) {
+            // Silent retry — backend waking up
+            await new Promise(r => setTimeout(r, 6000));
+          } else {
+            // All retries exhausted — show gentle message
+            addToast({
+              type: 'warning',
+              message: 'Backend is waking up — click Run Demo in a few seconds',
+            });
+            setIsLoading(false);
+          }
+        }
       }
     };
     init();
@@ -194,8 +211,16 @@ function App() {
     return (
       <div className="min-h-screen animated-gradient flex items-center justify-center">
         <div className="text-center">
-          <RefreshCw className="animate-spin mx-auto mb-4 text-primary-400" size={48} />
-          <p className="text-gray-300 text-lg">Loading ContextFlow...</p>
+          <Brain className="animate-pulse mx-auto mb-4 text-primary-400" size={56} />
+          <p className="text-white text-xl font-bold mb-2">ContextFlow</p>
+          <p className="text-gray-300 text-sm mb-1">Connecting to backend...</p>
+          <p className="text-gray-500 text-xs">Free tier backend may take 30–60s to wake up</p>
+          <div className="flex justify-center gap-1 mt-4">
+            {[0,1,2].map(i => (
+              <div key={i} className="w-2 h-2 bg-primary-400 rounded-full animate-bounce"
+                style={{ animationDelay: `${i * 150}ms` }} />
+            ))}
+          </div>
         </div>
       </div>
     );

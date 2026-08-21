@@ -1,15 +1,30 @@
 import type { ConsensusUpdate } from './types';
 import { useDashboardStore } from './store';
 
+// Derive WebSocket URL from the API URL — works in both local and production
+function getWsBaseUrl(): string {
+  const apiUrl = import.meta.env.VITE_API_URL || '';
+
+  // If VITE_API_URL is a full URL (production: https://contextflow-agent-1.onrender.com)
+  if (apiUrl.startsWith('http')) {
+    return apiUrl.replace(/^http/, 'ws').replace(/\/api$/, '');
+  }
+
+  // Local dev — use current host
+  const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+  return `${protocol}://${window.location.hostname}:8000`;
+}
+
 class WebSocketManager {
   private ws: WebSocket | null = null;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private reconnectAttempts = 0;
-  private maxReconnectAttempts = 5;
-  private reconnectDelay = 3000;
+  private maxReconnectAttempts = 3;
+  private reconnectDelay = 5000;
 
   connect(agentId: string) {
-    const wsUrl = `ws://localhost:8000/ws/consensus/${agentId}`;
+    const wsBase = getWsBaseUrl();
+    const wsUrl = `${wsBase}/ws/consensus/${agentId}`;
 
     try {
       this.ws = new WebSocket(wsUrl);
@@ -31,7 +46,7 @@ class WebSocketManager {
       };
 
       this.ws.onerror = () => {
-        useDashboardStore.getState().setWsError('Connection error');
+        useDashboardStore.getState().setWsError('WebSocket unavailable in deployment — using polling');
       };
 
       this.ws.onclose = () => {
@@ -40,13 +55,12 @@ class WebSocketManager {
       };
     } catch (error) {
       console.error('Failed to create WebSocket connection:', error);
-      useDashboardStore.getState().setWsError('Failed to connect');
+      useDashboardStore.getState().setWsError('WebSocket unavailable — using polling');
     }
   }
 
   private scheduleReconnect(agentId: string) {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) return;
-
     this.reconnectTimer = setTimeout(() => {
       this.reconnectAttempts++;
       this.connect(agentId);
