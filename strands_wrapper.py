@@ -81,11 +81,12 @@ _SIMULATION_RESPONSES: Dict[str, Dict[str, Any]] = {
     },
     "synthesis": {
         "task_summary": "Synthesised Scout and Critic findings. "
-                        "After ContextFlow consensus sync, agreed on 150 citations (averaged). "
+                        "After ContextFlow consensus sync, agreed on 156 citations "
+                        "(Critic's newer source preferred). "
                         "Hybrid approach recommended.",
         "observations": {
             "papers_synthesised": 15,
-            "top_paper_citations": 150,          # post-consensus value
+            "top_paper_citations": 156,          # matches Critic — newer authoritative source wins
             "top_paper_title": "Constitutional AI: Harmlessness from AI Feedback",
             "conflicts_resolved": 1,
             "consensus_level": "aligned",
@@ -94,7 +95,7 @@ _SIMULATION_RESPONSES: Dict[str, Dict[str, Any]] = {
         },
         "decisions": [
             "Merged Scout and Critic datasets",
-            "Resolved citation discrepancy via ContextFlow weighted average",
+            "Preferred Critic citation count — newer Oct 2026 index",
             "Produced unified recommendation with 92% confidence",
         ],
         "confidence": 0.90,
